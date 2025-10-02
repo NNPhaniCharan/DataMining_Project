@@ -1,0 +1,17 @@
+# Python cache files
+__pycache__/
+
+# Model files
+Backend/models/*.joblib
+*.joblib
+
+# Frontend
+Frontend/node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Editor temporary files
+*~
+*.swp
