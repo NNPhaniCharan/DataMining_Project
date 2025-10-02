@@ -1,0 +1,23 @@
+{
+  "r2": 0.6468790354421898,
+  "rmse": 4.163436413273366,
+  "mae": 2.114762796503449,
+  "chosen_alpha": 56.23413251903491,
+  "n_train": 83237,
+  "n_test": 14689,
+  "features_num": [
+    "N",
+    "P",
+    "K",
+    "pH",
+    "rainfall",
+    "temperature"
+  ],
+  "features_cat": [
+    "State_Name",
+    "Season",
+    "Crop"
+  ],
+  "target": "Yield_ton_per_hec",
+  "algorithm": "Custom Ridge Regression (closed-form, L2-regularized)"
+}
