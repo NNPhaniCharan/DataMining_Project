@@ -1,0 +1,36 @@
+{
+  "r2": 0.8666394008807471,
+  "rmse": 2.5586091820688925,
+  "mae": 1.089457628375846,
+  "baseline_global_mean": {
+    "r2": -3.5611300575055793e-09,
+    "rmse": 7.006323499953656,
+    "mae": 3.9323252143586425
+  },
+  "baseline_per_state_mean": {
+    "r2": 0.04447179795551659,
+    "rmse": 6.848759880233448,
+    "mae": 3.841300638985713
+  },
+  "best_n_estimators": 200,
+  "learning_rate": 0.1,
+  "max_depth": 4,
+  "subsample": 0.8,
+  "n_train": 83237,
+  "n_test": 14689,
+  "features_num": [
+    "N",
+    "P",
+    "K",
+    "pH",
+    "rainfall",
+    "temperature"
+  ],
+  "features_cat": [
+    "State_Name",
+    "Season",
+    "Crop"
+  ],
+  "target": "Yield_ton_per_hec",
+  "algorithm": "Custom Gradient Boosting (from scratch, decision trees with gradient descent)"
+}
