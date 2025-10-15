@@ -15,3 +15,5 @@ Frontend/node_modules/
 # Editor temporary files
 *~
 *.swp
+
+.DS_Store
