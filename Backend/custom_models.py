@@ -608,3 +608,272 @@ class RidgeRegressionCV:
     def predict(self, X):
         """Predict using the best model."""
         return self.best_model_.predict(X)
+
+
+class KNNClassifier:
+    def __init__(self, n_neighbors=5, weights='uniform', metric='minkowski', 
+                 p=2, normalize=True):
+        self.n_neighbors = n_neighbors
+        self.weights = weights  # 'uniform' or 'distance'
+        self.metric = metric
+        self.p = p
+        self.normalize = normalize
+        self.X_train_ = None
+        self.y_train_ = None
+        self.classes_ = None
+        self.scaler_ = None
+        
+    def fit(self, X, y):
+        X = np.asarray(X)
+        
+        # Normalize features (critical for KNN!)
+        if self.normalize:
+            self.scaler_ = StandardScaler()
+            X = self.scaler_.fit_transform(X)
+        
+        self.X_train_ = X
+        self.y_train_ = np.asarray(y)
+        self.classes_, y_encoded = np.unique(self.y_train_, return_inverse=True)
+        self._y = y_encoded
+        
+        return self
+    
+    def _compute_distances(self, X):
+        """Compute distances between X and training data."""
+        if self.metric == 'minkowski':
+            if self.p == 2:
+                return cdist(X, self.X_train_, metric='euclidean')
+            else:
+                return cdist(X, self.X_train_, metric='minkowski', p=self.p)
+        else:
+            return cdist(X, self.X_train_, metric=self.metric)
+    
+    def predict(self, X):
+        X = np.asarray(X)
+        
+        # Apply same normalization as training
+        if self.normalize and self.scaler_ is not None:
+            X = self.scaler_.transform(X)
+        
+        distances = self._compute_distances(X)
+        
+        predictions = []
+        for i in range(len(X)):
+            # Get k nearest neighbors
+            nearest_indices = np.argpartition(distances[i], self.n_neighbors)[:self.n_neighbors]
+            nearest_indices = nearest_indices[np.argsort(distances[i][nearest_indices])]
+            nearest_labels = self.y_train_[nearest_indices]
+            
+            if self.weights == 'uniform':
+                # Simple majority vote
+                unique, counts = np.unique(nearest_labels, return_counts=True)
+                predictions.append(unique[np.argmax(counts)])
+            elif self.weights == 'distance':
+                # Distance-weighted vote
+                nearest_distances = distances[i][nearest_indices]
+                # Avoid division by zero with small epsilon
+                weights = 1 / (nearest_distances + 1e-10)
+                
+                # Weighted vote for each class
+                class_weights = {}
+                for label, weight in zip(nearest_labels, weights):
+                    class_weights[label] = class_weights.get(label, 0) + weight
+                
+                predictions.append(max(class_weights.items(), key=lambda x: x[1])[0])
+        
+        return np.array(predictions)
+    
+    def predict_proba(self, X):
+        X = np.asarray(X)
+        
+        if self.normalize and self.scaler_ is not None:
+            X = self.scaler_.transform(X)
+        
+        distances = self._compute_distances(X)
+        n_classes = len(self.classes_)
+        probas = np.zeros((len(X), n_classes))
+        
+        for i in range(len(X)):
+            nearest_indices = np.argpartition(distances[i], self.n_neighbors)[:self.n_neighbors]
+            nearest_indices = nearest_indices[np.argsort(distances[i][nearest_indices])]
+            nearest_labels = self.y_train_[nearest_indices]
+            
+            if self.weights == 'uniform':
+                for label in nearest_labels:
+                    class_idx = np.where(self.classes_ == label)[0][0]
+                    probas[i, class_idx] += 1.0 / self.n_neighbors
+            else:
+                nearest_distances = distances[i][nearest_indices]
+                weights = 1 / (nearest_distances + 1e-10)
+                weight_sum = weights.sum()
+                
+                for label, weight in zip(nearest_labels, weights):
+                    class_idx = np.where(self.classes_ == label)[0][0]
+                    probas[i, class_idx] += weight / weight_sum
+        
+        return probas
+
+    def kneighbors(self, X, n_neighbors=None, return_distance=True):
+        """Return distances and indices of nearest neighbors."""
+        X = np.asarray(X)
+        
+        if self.normalize and self.scaler_ is not None:
+            X = self.scaler_.transform(X)
+        
+        if n_neighbors is None:
+            n_neighbors = self.n_neighbors
+            
+        distances = self._compute_distances(X)
+        indices = np.argsort(distances, axis=1)[:, :n_neighbors]
+        
+        if return_distance:
+            row_idx = np.arange(X.shape[0])[:, None]
+            dists = distances[row_idx, indices]
+            return dists, indices
+        return indices
+
+
+class KMeansClustering:
+    """
+    K-Means Clustering with k-means++ initialization and feature scaling.
+    """
+    def __init__(self, n_clusters=8, n_init=10, max_iter=300, tol=1e-4,
+                 random_state=None, normalize=True):
+        self.n_clusters = n_clusters
+        self.n_init = n_init
+        self.max_iter = max_iter
+        self.tol = tol
+        self.random_state = random_state
+        self.normalize = normalize
+        self.cluster_centers_ = None
+        self.labels_ = None
+        self.inertia_ = None
+        self.scaler_ = None
+        
+    def _kmeans_plusplus_init(self, X, random_state):
+        """
+        Initialize cluster centers using k-means++ algorithm.
+        """
+        n_samples = X.shape[0]
+        centers = [X[random_state.randint(n_samples)]]
+        
+        for _ in range(1, self.n_clusters):
+            # Compute distances from each point to nearest existing center
+            distances = np.min([np.sum((X - c) ** 2, axis=1) for c in centers], axis=0)
+            
+            # Choose next center with probability proportional to distance²
+            probabilities = distances / (distances.sum() + 1e-10)
+            cumulative_probs = np.cumsum(probabilities)
+            r = random_state.rand()
+            
+            for idx, cum_prob in enumerate(cumulative_probs):
+                if r < cum_prob:
+                    centers.append(X[idx])
+                    break
+        
+        return np.array(centers)
+    
+    def _assign_clusters(self, X, centers):
+        """Assign each point to nearest cluster center."""
+        distances = cdist(X, centers, metric='euclidean')
+        return np.argmin(distances, axis=1)
+    
+    def _update_centers(self, X, labels):
+        """Update cluster centers as mean of assigned points."""
+        centers = np.zeros((self.n_clusters, X.shape[1]))
+        for k in range(self.n_clusters):
+            cluster_points = X[labels == k]
+            if len(cluster_points) > 0:
+                centers[k] = cluster_points.mean(axis=0)
+            else:
+                # Reinitialize empty cluster at furthest point
+                distances = np.min([np.sum((X - centers[j]) ** 2, axis=1) 
+                                   for j in range(self.n_clusters) if j != k], axis=0)
+                centers[k] = X[np.argmax(distances)]
+        return centers
+    
+    def _compute_inertia(self, X, labels, centers):
+        """Compute within-cluster sum of squares."""
+        inertia = 0
+        for k in range(self.n_clusters):
+            cluster_points = X[labels == k]
+            if len(cluster_points) > 0:
+                inertia += np.sum((cluster_points - centers[k]) ** 2)
+        return inertia
+    
+    def fit(self, X, y=None):
+        """
+        Fit K-Means clustering.
+        
+        Parameters:
+        -----------
+        X : array-like, shape (n_samples, n_features)
+        y : Ignored
+        """
+        X = np.asarray(X)
+        
+        # Normalize features (critical for K-Means!)
+        if self.normalize:
+            self.scaler_ = StandardScaler()
+            X = self.scaler_.fit_transform(X)
+        
+        # Set random state
+        if self.random_state is not None:
+            np.random.seed(self.random_state)
+            random_state = np.random.RandomState(self.random_state)
+        else:
+            random_state = np.random.RandomState()
+        
+        best_inertia = np.inf
+        best_centers = None
+        best_labels = None
+        
+        # Run k-means multiple times with different initializations
+        for init_run in range(self.n_init):
+            centers = self._kmeans_plusplus_init(X, random_state)
+            
+            # Run k-means iterations
+            for iteration in range(self.max_iter):
+                old_centers = centers.copy()
+                labels = self._assign_clusters(X, centers)
+                centers = self._update_centers(X, labels)
+                
+                # Check convergence based on center movement
+                center_shift = np.sum((centers - old_centers) ** 2)
+                if center_shift < self.tol:
+                    break
+            
+            # Compute final inertia
+            inertia = self._compute_inertia(X, labels, centers)
+            
+            # Keep best result
+            if inertia < best_inertia:
+                best_inertia = inertia
+                best_centers = centers
+                best_labels = labels
+        
+        self.cluster_centers_ = best_centers
+        self.labels_ = best_labels
+        self.inertia_ = best_inertia
+        
+        return self
+    
+    def predict(self, X):
+        """
+        Predict cluster labels for samples in X.
+        
+        Parameters:
+        -----------
+        X : array-like, shape (n_samples, n_features)
+        
+        Returns:
+        --------
+        labels : array, shape (n_samples,)
+        """
+        X = np.asarray(X)
+        
+        # Apply same normalization as training
+        if self.normalize and self.scaler_ is not None:
+            X = self.scaler_.transform(X)
+        
+        return self._assign_clusters(X, self.cluster_centers_)
