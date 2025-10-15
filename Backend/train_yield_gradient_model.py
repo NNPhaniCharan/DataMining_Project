@@ -35,13 +35,13 @@ def main():
     
     # Custom Gradient Boosting with cross-validation
     model = GradientBoostingRegressorCV(
-        n_estimators=200,          # Max number of trees
-        learning_rate=0.1,         # Shrinkage factor
-        max_depth=4,               # Tree depth
+        n_estimators=300,          # Max number of trees
+        learning_rate=0.05,        # Shrinkage factor
+        max_depth=8,               # Tree depth
         min_samples_split=20,      # Min samples to split
         min_samples_leaf=10,       # Min samples in leaf
-        subsample=0.8,             # Stochastic GB (80% samples per tree)
-        cv=5,                      # 5-fold cross-validation
+        subsample=0.75,            # Stochastic GB (75% samples per tree)
+        cv=8,                      # 8-fold cross-validation
         random_state=42,
         verbose=1                  # Show progress
     )
