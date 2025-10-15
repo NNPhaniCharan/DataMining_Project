@@ -610,6 +610,128 @@ class RidgeRegressionCV:
         return self.best_model_.predict(X)
 
 
+class KNNClassifier:
+    def __init__(self, n_neighbors=5, weights='uniform', metric='minkowski', 
+                 p=2, normalize=True):
+        self.n_neighbors = n_neighbors
+        self.weights = weights  # 'uniform' or 'distance'
+        self.metric = metric
+        self.p = p
+        self.normalize = normalize
+        self.X_train_ = None
+        self.y_train_ = None
+        self.classes_ = None
+        self.scaler_ = None
+        
+    def fit(self, X, y):
+        X = np.asarray(X)
+        
+        # Normalize features (critical for KNN!)
+        if self.normalize:
+            self.scaler_ = StandardScaler()
+            X = self.scaler_.fit_transform(X)
+        
+        self.X_train_ = X
+        self.y_train_ = np.asarray(y)
+        self.classes_, y_encoded = np.unique(self.y_train_, return_inverse=True)
+        self._y = y_encoded
+        
+        return self
+    
+    def _compute_distances(self, X):
+        """Compute distances between X and training data."""
+        if self.metric == 'minkowski':
+            if self.p == 2:
+                return cdist(X, self.X_train_, metric='euclidean')
+            else:
+                return cdist(X, self.X_train_, metric='minkowski', p=self.p)
+        else:
+            return cdist(X, self.X_train_, metric=self.metric)
+    
+    def predict(self, X):
+        X = np.asarray(X)
+        
+        # Apply same normalization as training
+        if self.normalize and self.scaler_ is not None:
+            X = self.scaler_.transform(X)
+        
+        distances = self._compute_distances(X)
+        
+        predictions = []
+        for i in range(len(X)):
+            # Get k nearest neighbors
+            nearest_indices = np.argpartition(distances[i], self.n_neighbors)[:self.n_neighbors]
+            nearest_indices = nearest_indices[np.argsort(distances[i][nearest_indices])]
+            nearest_labels = self.y_train_[nearest_indices]
+            
+            if self.weights == 'uniform':
+                # Simple majority vote
+                unique, counts = np.unique(nearest_labels, return_counts=True)
+                predictions.append(unique[np.argmax(counts)])
+            elif self.weights == 'distance':
+                # Distance-weighted vote
+                nearest_distances = distances[i][nearest_indices]
+                # Avoid division by zero with small epsilon
+                weights = 1 / (nearest_distances + 1e-10)
+                
+                # Weighted vote for each class
+                class_weights = {}
+                for label, weight in zip(nearest_labels, weights):
+                    class_weights[label] = class_weights.get(label, 0) + weight
+                
+                predictions.append(max(class_weights.items(), key=lambda x: x[1])[0])
+        
+        return np.array(predictions)
+    
+    def predict_proba(self, X):
+        X = np.asarray(X)
+        
+        if self.normalize and self.scaler_ is not None:
+            X = self.scaler_.transform(X)
+        
+        distances = self._compute_distances(X)
+        n_classes = len(self.classes_)
+        probas = np.zeros((len(X), n_classes))
+        
+        for i in range(len(X)):
+            nearest_indices = np.argpartition(distances[i], self.n_neighbors)[:self.n_neighbors]
+            nearest_indices = nearest_indices[np.argsort(distances[i][nearest_indices])]
+            nearest_labels = self.y_train_[nearest_indices]
+            
+            if self.weights == 'uniform':
+                for label in nearest_labels:
+                    class_idx = np.where(self.classes_ == label)[0][0]
+                    probas[i, class_idx] += 1.0 / self.n_neighbors
+            else:
+                nearest_distances = distances[i][nearest_indices]
+                weights = 1 / (nearest_distances + 1e-10)
+                weight_sum = weights.sum()
+                
+                for label, weight in zip(nearest_labels, weights):
+                    class_idx = np.where(self.classes_ == label)[0][0]
+                    probas[i, class_idx] += weight / weight_sum
+        
+        return probas
+
+    def kneighbors(self, X, n_neighbors=None, return_distance=True):
+        """Return distances and indices of nearest neighbors."""
+        X = np.asarray(X)
+        
+        if self.normalize and self.scaler_ is not None:
+            X = self.scaler_.transform(X)
+        
+        if n_neighbors is None:
+            n_neighbors = self.n_neighbors
+            
+        distances = self._compute_distances(X)
+        indices = np.argsort(distances, axis=1)[:, :n_neighbors]
+        
+        if return_distance:
+            row_idx = np.arange(X.shape[0])[:, None]
+            dists = distances[row_idx, indices]
+            return dists, indices
+        return indices
+
 
 class KMeansClustering:
     """
