@@ -1,0 +1,276 @@
+.evaluation-page {
+  animation: fadeIn 0.3s;
+}
+
+.evaluation-page h2 {
+  color: var(--gray-800);
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.algo-desc {
+  color: var(--primary);
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metric-box {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid var(--primary);
+}
+
+.metric-label {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 0.25rem;
+}
+
+.metric-subtitle {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+.section-header {
+  margin: 2rem 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.section-header h3 {
+  color: var(--gray-800);
+  margin-bottom: 0.25rem;
+}
+
+.section-header p {
+  color: var(--gray-600);
+  font-size: 0.875rem;
+}
+
+.train-info {
+  color: var(--gray-500);
+  font-size: 0.875rem;
+}
+
+.coefficients-section {
+  margin-top: 1.5rem;
+}
+
+.coef-table-wrapper {
+  margin-top: 2rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.coef-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.coef-table thead {
+  position: sticky;
+  top: 0;
+  background: var(--gray-800);
+  color: white;
+}
+
+.coef-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.coef-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.coef-table tbody tr:hover {
+  background: var(--gray-100);
+}
+
+.feature-name {
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.positive {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.negative {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.intercept-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--gray-100);
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.intercept-info strong {
+  margin-right: 0.5rem;
+}
+
+.classes-list {
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.classes-list strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--gray-700);
+}
+
+.cluster-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.cluster-table thead {
+  background: var(--gray-100);
+}
+
+.cluster-table th {
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-300);
+}
+
+.cluster-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.cluster-table tbody tr:hover {
+  background: var(--gray-50);
+}
+
+/* Baseline Comparison Styles */
+.baseline-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.baseline-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--gray-200);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.baseline-card h4 {
+  color: var(--gray-800);
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--gray-200);
+}
+
+.baseline-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.baseline-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.baseline-label {
+  font-weight: 600;
+  color: var(--gray-700);
+  font-size: 0.9rem;
+}
+
+.baseline-value {
+  font-weight: 700;
+  color: var(--gray-600);
+  font-size: 1rem;
+  font-family: monospace;
+}
+
+.baseline-value.highlight {
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
+/* Confusion Matrix Info */
+.confusion-matrix-info {
+  background: var(--gray-50);
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid var(--primary);
+}
+
+.confusion-matrix-info p {
+  margin-bottom: 0.75rem;
+  color: var(--gray-700);
+}
+
+.matrix-note {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  font-style: italic;
+}
+
+/* Quality Info */
+.quality-info {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border-left: 4px solid #0ea5e9;
+  margin-bottom: 2rem;
+}
+
+.quality-info h4 {
+  color: var(--gray-800);
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.quality-info p {
+  margin-bottom: 0.75rem;
+  color: var(--gray-700);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.quality-info p:last-child {
+  margin-bottom: 0;
+}
