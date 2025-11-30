@@ -4,6 +4,7 @@ from pathlib import Path
 import joblib, numpy as np, pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
 from custom_models import KMeansClustering
 
@@ -15,6 +16,8 @@ DATA = BASE / "DataAndCleaning" / "Data" / "CleanedData" / "Crop_production_clea
 MODEL = BASE / "models" / "cluster_model.joblib"
 PROFILE = BASE / "models" / "cluster_profile.joblib"
 META = BASE / "models" / "meta_cluster.json"
+PCA_MODEL = BASE / "models" / "cluster_pca.joblib"
+PCA_DATA = BASE / "models" / "cluster_pca_data.joblib"
 
 FEATS = ["N","P","K","pH","rainfall","temperature"]
 N_CLUSTERS = 9
@@ -89,21 +92,36 @@ def main():
         "counts": np.bincount(labels).tolist(),
         "cluster_profiles": cluster_profiles
     }
+    
+    # Create PCA for 2D visualization
+    pca = PCA(n_components=2, random_state=42)
+    X_pca = pca.fit_transform(X_scaled)
+    
+    # Store PCA transformed data with labels
+    pca_data = {
+        "X_pca": X_pca,
+        "labels": labels,
+        "explained_variance_ratio": pca.explained_variance_ratio_
+    }
 
     MODEL.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipe, MODEL)
     joblib.dump(profile, PROFILE)
+    joblib.dump(pca, PCA_MODEL)
+    joblib.dump(pca_data, PCA_DATA)
     META.write_text(json.dumps({
         "n_clusters": N_CLUSTERS,
         "counts": profile["counts"],
         "silhouette_score": silhouette,
         "calinski_harabasz_score": calinski_harabasz,
+        "pca_variance_explained": float(pca.explained_variance_ratio_.sum()),
         "algorithm": "Custom K-Means with k-means++ initialization"
     }, indent=2))
-    print("Saved:", MODEL, PROFILE)
+    print("Saved:", MODEL, PROFILE, PCA_MODEL, PCA_DATA)
     print(f"\nMetrics:")
     print(f"  Silhouette Score: {silhouette:.4f}")
     print(f"  Calinski-Harabasz Index: {calinski_harabasz:.2f}")
+    print(f"  PCA Variance Explained: {pca.explained_variance_ratio_.sum():.2%}")
     print("\nCluster Profiles:")
     for cp in cluster_profiles:
         print(f"\nCluster {cp['cluster_id']}: Avg Yield={cp['avg_yield']:.2f} t/ha")

@@ -13,5 +13,6 @@
   ],
   "silhouette_score": 0.32458754906750287,
   "calinski_harabasz_score": 25475.29163359484,
+  "pca_variance_explained": 0.5170147271345436,
   "algorithm": "Custom K-Means with k-means++ initialization"
 }

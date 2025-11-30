@@ -17,9 +17,13 @@ function ClusterAssignment() {
   const [clusterInfo, setClusterInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [pcaImage, setPcaImage] = useState(null);
+  const [pcaVariance, setPcaVariance] = useState(null);
+  const [loadingPca, setLoadingPca] = useState(false);
 
   useEffect(() => {
     fetchClusterInfo();
+    fetchPcaVisualization();
   }, []);
 
   const fetchClusterInfo = async () => {
@@ -28,6 +32,22 @@ function ClusterAssignment() {
       setClusterInfo(res.data);
     } catch (err) {
       console.error("Failed to fetch cluster info:", err);
+    }
+  };
+
+  const fetchPcaVisualization = async (userSample = null) => {
+    setLoadingPca(true);
+    try {
+      const res = await axios.post(
+        `${API_BASE}/cluster/visualization/pca`,
+        userSample
+      );
+      setPcaImage(res.data.image);
+      setPcaVariance(res.data.variance_explained);
+    } catch (err) {
+      console.error("Failed to fetch PCA visualization:", err);
+    } finally {
+      setLoadingPca(false);
     }
   };
 
@@ -45,6 +65,9 @@ function ClusterAssignment() {
         samples: [formData],
       });
       setResult(response.data.assignments[0]);
+
+      // Update PCA visualization with the user's input point
+      await fetchPcaVisualization(formData);
     } catch (err) {
       setError(
         "Cluster assignment failed: " +
@@ -83,6 +106,62 @@ function ClusterAssignment() {
           K-Means (k-means++ init)
         </p>
       </div>
+
+      {/* PCA Visualization Section */}
+      {pcaImage && (
+        <div className="card" style={{ marginBottom: "2rem" }}>
+          <h3>🗺️ Cluster Visualization (PCA)</h3>
+          <p
+            style={{
+              fontSize: "0.875rem",
+              color: "#666",
+              marginBottom: "1rem",
+            }}
+          >
+            2D projection of the 6-dimensional feature space using Principal
+            Component Analysis.
+            {result
+              ? " Your input point is highlighted with a red star!"
+              : " Enter values and click 'Assign Cluster' to see your input point."}
+          </p>
+          {loadingPca ? (
+            <div style={{ textAlign: "center", padding: "2rem" }}>
+              <div className="spinner" style={{ margin: "0 auto" }}></div>
+              <p style={{ marginTop: "1rem" }}>Generating visualization...</p>
+            </div>
+          ) : (
+            <div>
+              <img
+                src={pcaImage}
+                alt="PCA Cluster Visualization"
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  borderRadius: "8px",
+                  border: "1px solid #e0e0e0",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                }}
+              />
+              {pcaVariance && (
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    padding: "0.75rem",
+                    background: "#f8f9fa",
+                    borderRadius: "6px",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  <strong>Variance Explained:</strong> PC1:{" "}
+                  {(pcaVariance.pc1 * 100).toFixed(1)}%, PC2:{" "}
+                  {(pcaVariance.pc2 * 100).toFixed(1)}%, Total:{" "}
+                  {(pcaVariance.total * 100).toFixed(1)}%
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="prediction-layout">
         <div className="card input-card">
