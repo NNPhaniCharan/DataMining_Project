@@ -5,6 +5,7 @@ import joblib, numpy as np, pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import silhouette_score, calinski_harabasz_score
+from sklearn.decomposition import PCA
 from custom_models import KMeansClustering
 
 # Resolve paths relative to the repository root so the script works
@@ -15,6 +16,7 @@ DATA = BASE / "DataAndCleaning" / "Data" / "CleanedData" / "Crop_production_clea
 MODEL = BASE / "models" / "cluster_model.joblib"
 PROFILE = BASE / "models" / "cluster_profile.joblib"
 META = BASE / "models" / "meta_cluster.json"
+PCA_DATA = BASE / "models" / "cluster_pca_data.joblib"
 
 FEATS = ["N","P","K","pH","rainfall","temperature"]
 N_CLUSTERS = 9
@@ -90,9 +92,20 @@ def main():
         "cluster_profiles": cluster_profiles
     }
 
+    # Generate PCA data for visualization
+    pca = PCA(n_components=2, random_state=42)
+    X_pca = pca.fit_transform(X_scaled)
+    
+    pca_data = {
+        "X_pca": X_pca,
+        "labels": labels,
+        "explained_variance_ratio": pca.explained_variance_ratio_.tolist()
+    }
+
     MODEL.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipe, MODEL)
     joblib.dump(profile, PROFILE)
+    joblib.dump(pca_data, PCA_DATA)
     META.write_text(json.dumps({
         "n_clusters": N_CLUSTERS,
         "counts": profile["counts"],
@@ -100,8 +113,9 @@ def main():
         "calinski_harabasz_score": calinski_harabasz,
         "algorithm": "Custom K-Means with k-means++ initialization"
     }, indent=2))
-    print("Saved:", MODEL, PROFILE)
+    print("Saved:", MODEL, PROFILE, PCA_DATA)
     print(f"\nMetrics:")
+    print(f"  PCA Variance Explained: {sum(pca.explained_variance_ratio_)*100:.1f}%")
     print(f"  Silhouette Score: {silhouette:.4f}")
     print(f"  Calinski-Harabasz Index: {calinski_harabasz:.2f}")
     print("\nCluster Profiles:")

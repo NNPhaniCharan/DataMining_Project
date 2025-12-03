@@ -11,7 +11,6 @@ model = None
 @router.on_event("startup")
 def _load():
     global model
-    # model = load_artifact("yield_model.joblib")
     model = load_artifact("GradientBoosting_yield_model.joblib")
 
 @router.post("/yield", response_model=YieldPredictionResponse)

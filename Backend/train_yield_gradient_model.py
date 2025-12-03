@@ -1,4 +1,4 @@
-# train_yield_model.py
+# train_yield_gradient_model.py
 import json
 from pathlib import Path
 import joblib, numpy as np, pandas as pd

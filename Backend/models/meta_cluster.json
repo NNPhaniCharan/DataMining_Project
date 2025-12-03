@@ -1,6 +1,16 @@
 {
   "n_clusters": 9,
-  "counts": [9632, 7732, 2867, 23694, 7122, 14139, 23263, 5294, 4183],
+  "counts": [
+    9632,
+    7732,
+    2867,
+    23694,
+    7122,
+    14139,
+    23263,
+    5294,
+    4183
+  ],
   "silhouette_score": 0.32458754906750287,
   "calinski_harabasz_score": 25475.29163359484,
   "algorithm": "Custom K-Means with k-means++ initialization"

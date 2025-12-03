@@ -3,8 +3,9 @@ from fastapi import APIRouter, HTTPException
 import json
 import numpy as np
 import pandas as pd
+import joblib
 from pathlib import Path
-from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report, precision_recall_fscore_support
 from ..deps import BASE_DIR, load_artifact, MODELS_DIR
 
 router = APIRouter(prefix="/evaluation", tags=["evaluation"])
@@ -185,3 +186,162 @@ def get_evaluation_summary():
         }
     except Exception as e:
         raise HTTPException(500, f"Error loading evaluation summary: {str(e)}")
+
+
+@router.get("/cluster/pca")
+def get_cluster_pca_data():
+    """Get PCA scatter plot data for clustering visualization (sampled for performance)."""
+    try:
+        pca_path = MODELS_DIR / "cluster_pca_data.joblib"
+        if not pca_path.exists():
+            raise HTTPException(404, "PCA data not found")
+        
+        pca_data = joblib.load(pca_path)
+        X_pca = pca_data["X_pca"]
+        labels = pca_data["labels"]
+        evr = pca_data["explained_variance_ratio"]
+        
+        # Sample data for frontend performance (max 2000 points)
+        n_samples = len(labels)
+        max_samples = 2000
+        if n_samples > max_samples:
+            # Stratified sampling to keep cluster proportions
+            np.random.seed(42)
+            indices = []
+            unique_labels = np.unique(labels)
+            samples_per_cluster = max_samples // len(unique_labels)
+            for label in unique_labels:
+                label_indices = np.where(labels == label)[0]
+                n_take = min(samples_per_cluster, len(label_indices))
+                indices.extend(np.random.choice(label_indices, n_take, replace=False))
+            indices = np.array(indices)
+        else:
+            indices = np.arange(n_samples)
+        
+        # Build scatter data
+        scatter_data = [
+            {"x": float(X_pca[i, 0]), "y": float(X_pca[i, 1]), "cluster": int(labels[i])}
+            for i in indices
+        ]
+        
+        return {
+            "scatter_data": scatter_data,
+            "explained_variance": [float(evr[0]), float(evr[1])],
+            "total_variance_explained": float(sum(evr)),
+            "n_total": n_samples,
+            "n_sampled": len(indices)
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error loading PCA data: {str(e)}")
+
+
+@router.get("/croprec/per_class_metrics")
+def get_croprec_per_class_metrics():
+    """Get per-class precision, recall, F1 for crop recommendation."""
+    try:
+        meta_path = MODELS_DIR / "meta_croprec.json"
+        if not meta_path.exists():
+            raise HTTPException(404, "Crop recommendation metadata not found")
+        
+        meta = json.loads(meta_path.read_text())
+        confusion = np.array(meta.get("confusion_matrix", []))
+        classes = meta.get("classes", [])
+        
+        if confusion.size == 0 or len(classes) == 0:
+            raise HTTPException(404, "Confusion matrix or classes not found")
+        
+        # Calculate per-class metrics from confusion matrix
+        per_class_metrics = []
+        for i, cls in enumerate(classes):
+            tp = confusion[i, i]
+            fp = confusion[:, i].sum() - tp
+            fn = confusion[i, :].sum() - tp
+            
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+            support = int(confusion[i, :].sum())
+            
+            per_class_metrics.append({
+                "class": cls,
+                "precision": float(precision),
+                "recall": float(recall),
+                "f1": float(f1),
+                "support": support
+            })
+        
+        # Sort by F1 score (worst performing first for visibility)
+        per_class_metrics.sort(key=lambda x: x["f1"])
+        
+        return {
+            "per_class_metrics": per_class_metrics,
+            "n_classes": len(classes)
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error calculating per-class metrics: {str(e)}")
+
+
+@router.get("/yield/predictions")
+def get_yield_predictions():
+    """Get actual vs predicted values for yield model visualization."""
+    try:
+        # Load model and data
+        model = load_artifact("GradientBoosting_yield_model.joblib")
+        df = pd.read_csv(DATA_PATH)
+        
+        NUM = ["N", "P", "K", "pH", "rainfall", "temperature"]
+        CAT = ["State_Name", "Season", "Crop"]
+        TARGET = "Yield_ton_per_hec"
+        
+        X = df[NUM + CAT].copy()
+        y = df[TARGET].astype(float)
+        
+        # Use same split as training
+        from sklearn.model_selection import train_test_split
+        _, X_test, _, y_test = train_test_split(X, y, test_size=0.15, random_state=42)
+        
+        # Get predictions
+        y_pred = model.predict(X_test)
+        
+        # Sample for frontend (max 1500 points)
+        n_samples = len(y_test)
+        max_samples = 1500
+        if n_samples > max_samples:
+            np.random.seed(42)
+            indices = np.random.choice(n_samples, max_samples, replace=False)
+        else:
+            indices = np.arange(n_samples)
+        
+        y_test_arr = y_test.values
+        
+        # Build scatter data for actual vs predicted
+        scatter_data = [
+            {"actual": float(y_test_arr[i]), "predicted": float(y_pred[i])}
+            for i in indices
+        ]
+        
+        # Build residual data
+        residuals = y_pred - y_test_arr
+        residual_data = [
+            {"predicted": float(y_pred[i]), "residual": float(residuals[i])}
+            for i in indices
+        ]
+        
+        # Calculate residual distribution for histogram
+        residual_hist, bin_edges = np.histogram(residuals, bins=30)
+        residual_distribution = [
+            {"bin": float((bin_edges[i] + bin_edges[i+1]) / 2), "count": int(residual_hist[i])}
+            for i in range(len(residual_hist))
+        ]
+        
+        return {
+            "scatter_data": scatter_data,
+            "residual_data": residual_data,
+            "residual_distribution": residual_distribution,
+            "n_total": n_samples,
+            "n_sampled": len(indices),
+            "residual_mean": float(np.mean(residuals)),
+            "residual_std": float(np.std(residuals))
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error generating predictions: {str(e)}")
