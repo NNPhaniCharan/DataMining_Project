@@ -4,6 +4,64 @@ import "./Prediction.css";
 
 const API_BASE = "http://localhost:8000";
 
+// Cluster labels based on analysis of cluster characteristics
+const CLUSTER_LABELS = {
+  0: {
+    name: "Spice & Oilseed Zone",
+    description: "Warm, low-nutrient soils for sesamum, coriander, garlic",
+    color: "#FF9800",
+    icon: "🌶️",
+  },
+  1: {
+    name: "Vegetable & Fruit Zone",
+    description: "Rich soils for onion, banana, tomato",
+    color: "#4CAF50",
+    icon: "🍌",
+  },
+  2: {
+    name: "Plantation Spice Zone",
+    description: "Acidic, wet soils for turmeric, cardamom",
+    color: "#9C27B0",
+    icon: "🫚",
+  },
+  3: {
+    name: "Dry Cereal Zone",
+    description: "Low rainfall for rapeseed, rice, barley, maize",
+    color: "#795548",
+    icon: "🌾",
+  },
+  4: {
+    name: "Wheat Belt",
+    description: "Cool, dry conditions ideal for wheat",
+    color: "#FFC107",
+    icon: "🌾",
+  },
+  5: {
+    name: "Wet Tropical Zone",
+    description: "High rainfall for rice, maize, tapioca",
+    color: "#00BCD4",
+    icon: "🌴",
+  },
+  6: {
+    name: "Hot Staple Zone",
+    description: "Hot climate for rice, maize, cotton",
+    color: "#F44336",
+    icon: "🌡️",
+  },
+  7: {
+    name: "Potato Zone",
+    description: "High nitrogen soils for intensive potato farming",
+    color: "#8BC34A",
+    icon: "🥔",
+  },
+  8: {
+    name: "Root Crop Zone",
+    description: "High potassium for sweet potato, arecanut",
+    color: "#E91E63",
+    icon: "🍠",
+  },
+};
+
 function ClusterAssignment() {
   const [formData, setFormData] = useState({
     N: 90,
@@ -99,8 +157,15 @@ function ClusterAssignment() {
                     key={cluster.cluster_id}
                     className="btn btn-secondary"
                     onClick={() => loadExample(cluster.cluster_id)}
+                    title={CLUSTER_LABELS[cluster.cluster_id]?.name}
+                    style={{
+                      borderLeft: `3px solid ${
+                        CLUSTER_LABELS[cluster.cluster_id]?.color || "#666"
+                      }`,
+                    }}
                   >
-                    Cluster {cluster.cluster_id}
+                    {CLUSTER_LABELS[cluster.cluster_id]?.icon}{" "}
+                    {cluster.cluster_id}
                   </button>
                 ))}
               </div>
@@ -186,7 +251,48 @@ function ClusterAssignment() {
           {result && (
             <div className="result-display">
               <div className="result-label">Assigned Cluster</div>
-              <div className="result-value">Cluster {result.cluster_id}</div>
+              <div className="result-value">
+                <span style={{ marginRight: "0.5rem" }}>
+                  {CLUSTER_LABELS[result.cluster_id]?.icon}
+                </span>
+                Cluster {result.cluster_id}
+              </div>
+
+              {/* Cluster Label & Description */}
+              {CLUSTER_LABELS[result.cluster_id] && (
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    padding: "1rem",
+                    background: `${CLUSTER_LABELS[result.cluster_id].color}15`,
+                    border: `2px solid ${
+                      CLUSTER_LABELS[result.cluster_id].color
+                    }`,
+                    borderRadius: "12px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: "700",
+                      color: CLUSTER_LABELS[result.cluster_id].color,
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    {CLUSTER_LABELS[result.cluster_id].name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.9rem",
+                      color: "#555",
+                      lineHeight: "1.4",
+                    }}
+                  >
+                    {CLUSTER_LABELS[result.cluster_id].description}
+                  </div>
+                </div>
+              )}
 
               {getClusterDetails(result.cluster_id) && (
                 <div className="cluster-details">
