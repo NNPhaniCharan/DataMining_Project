@@ -17,9 +17,32 @@ MODEL = BASE / "models" / "cluster_model.joblib"
 PROFILE = BASE / "models" / "cluster_profile.joblib"
 META = BASE / "models" / "meta_cluster.json"
 PCA_DATA = BASE / "models" / "cluster_pca_data.joblib"
+ELBOW_DATA = BASE / "models" / "cluster_elbow_data.joblib"
 
 FEATS = ["N","P","K","pH","rainfall","temperature"]
 N_CLUSTERS = 9
+ELBOW_K_RANGE = range(2, 16)  # k values for elbow graph
+
+def compute_elbow_data(X_scaled):
+    """Compute inertia and silhouette scores for various k values."""
+    elbow_data = []
+    print("\nComputing elbow data for k = 2 to 15...")
+    
+    for k in ELBOW_K_RANGE:
+        kmeans = KMeansClustering(n_clusters=k, n_init=5, random_state=42, normalize=False)
+        kmeans.fit(X_scaled)
+        
+        # Compute silhouette score (skip for k=2 which is trivial)
+        sil_score = float(silhouette_score(X_scaled, kmeans.labels_)) if k > 2 else 0
+        
+        elbow_data.append({
+            "k": k,
+            "inertia": float(kmeans.inertia_),
+            "silhouette": sil_score
+        })
+        print(f"  k={k}: inertia={kmeans.inertia_:.2f}, silhouette={sil_score:.4f}")
+    
+    return elbow_data
 
 def main():
     df = pd.read_csv(DATA)
@@ -102,10 +125,14 @@ def main():
         "explained_variance_ratio": pca.explained_variance_ratio_.tolist()
     }
 
+    # Compute elbow data for k selection visualization
+    elbow_data = compute_elbow_data(X_scaled)
+
     MODEL.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(pipe, MODEL)
     joblib.dump(profile, PROFILE)
     joblib.dump(pca_data, PCA_DATA)
+    joblib.dump(elbow_data, ELBOW_DATA)
     META.write_text(json.dumps({
         "n_clusters": N_CLUSTERS,
         "counts": profile["counts"],
@@ -113,7 +140,7 @@ def main():
         "calinski_harabasz_score": calinski_harabasz,
         "algorithm": "Custom K-Means with k-means++ initialization"
     }, indent=2))
-    print("Saved:", MODEL, PROFILE, PCA_DATA)
+    print("Saved:", MODEL, PROFILE, PCA_DATA, ELBOW_DATA)
     print(f"\nMetrics:")
     print(f"  PCA Variance Explained: {sum(pca.explained_variance_ratio_)*100:.1f}%")
     print(f"  Silhouette Score: {silhouette:.4f}")

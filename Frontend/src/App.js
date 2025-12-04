@@ -15,24 +15,24 @@ function Navigation() {
   return (
     <nav className="navbar">
       <div className="nav-brand">
-        <h2>🌾 DM Agri Dashboard</h2>
+        <h2>Agri Analytics</h2>
         <p>Custom ML Algorithms</p>
       </div>
       <div className="nav-links">
         <Link to="/" className={isActive('/') ? 'active' : ''}>
-          📊 Data Explorer
+          Data Explorer
         </Link>
         <Link to="/evaluation" className={isActive('/evaluation') ? 'active' : ''}>
-          📈 Model Evaluation
+          Model Evaluation
         </Link>
         <Link to="/yield" className={isActive('/yield') ? 'active' : ''}>
-          🌾 Yield Prediction
+          Yield Prediction
         </Link>
         <Link to="/crop" className={isActive('/crop') ? 'active' : ''}>
-          🌱 Crop Recommendation
+          Crop Recommendation
         </Link>
         <Link to="/cluster" className={isActive('/cluster') ? 'active' : ''}>
-          🎯 Cluster Assignment
+          Cluster Assignment
         </Link>
       </div>
     </nav>

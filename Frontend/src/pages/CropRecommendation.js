@@ -97,7 +97,7 @@ function CropRecommendation() {
   return (
     <div className="prediction-page">
       <div className="page-header">
-        <h1>🌱 Crop Recommendation</h1>
+        <h1>Crop Recommendation</h1>
         <p>
           Get top 3 crop recommendations using Custom k-NN Classifier
           (distance-weighted voting)
@@ -218,7 +218,7 @@ function CropRecommendation() {
             onClick={handlePredict}
             disabled={loading}
           >
-            {loading ? "Recommending..." : "🌾 Get Recommendations"}
+            {loading ? "Recommending..." : "Get Recommendations"}
           </button>
         </div>
 
@@ -234,7 +234,7 @@ function CropRecommendation() {
               {/* Confidence Scores Chart */}
               {result.confidence_scores && (
                 <div className="conditions-viz" style={{ marginTop: "1.5rem" }}>
-                  <h4>🎯 Recommendation Confidence Scores</h4>
+                  <h4>Recommendation Confidence Scores</h4>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart
                       data={result.top_3_crops.map((crop, idx) => ({
@@ -292,7 +292,7 @@ function CropRecommendation() {
 
               {/* Soil Nutrients Visualization */}
               <div className="conditions-viz">
-                <h4>📊 Soil Nutrient Profile (NPK)</h4>
+                <h4>Soil Nutrient Profile (NPK)</h4>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart
                     data={[

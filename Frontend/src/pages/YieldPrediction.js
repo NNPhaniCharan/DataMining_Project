@@ -101,7 +101,7 @@ function YieldPrediction() {
   return (
     <div className="prediction-page">
       <div className="page-header">
-        <h1>🌾 Yield Prediction</h1>
+        <h1>Yield Prediction</h1>
         <p>
           Predict crop yield using Custom Gradient Boosting (from scratch,
           decision trees with gradient descent)
@@ -236,7 +236,7 @@ function YieldPrediction() {
             onClick={handlePredict}
             disabled={loading}
           >
-            {loading ? "Predicting..." : "🔮 Predict Yield"}
+            {loading ? "Predicting..." : "Predict Yield"}
           </button>
         </div>
 

@@ -235,6 +235,33 @@ def get_cluster_pca_data():
         raise HTTPException(500, f"Error loading PCA data: {str(e)}")
 
 
+@router.get("/cluster/elbow")
+def get_cluster_elbow_data():
+    """Get elbow method data showing inertia and silhouette scores for various k values."""
+    try:
+        elbow_path = MODELS_DIR / "cluster_elbow_data.joblib"
+        meta_path = MODELS_DIR / "meta_cluster.json"
+        
+        if not elbow_path.exists():
+            raise HTTPException(404, "Elbow data not found. Please retrain the cluster model.")
+        
+        elbow_data = joblib.load(elbow_path)
+        
+        # Get the selected k value from metadata
+        selected_k = 9  # default
+        if meta_path.exists():
+            meta = json.loads(meta_path.read_text())
+            selected_k = meta.get("n_clusters", 9)
+        
+        return {
+            "elbow_data": elbow_data,
+            "selected_k": selected_k,
+            "description": "Inertia (WCSS) decreases as k increases. The 'elbow' point suggests optimal k."
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error loading elbow data: {str(e)}")
+
+
 @router.get("/croprec/per_class_metrics")
 def get_croprec_per_class_metrics():
     """Get per-class precision, recall, F1 for crop recommendation."""

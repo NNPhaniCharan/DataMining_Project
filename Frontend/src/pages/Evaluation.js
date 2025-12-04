@@ -14,6 +14,8 @@ import {
   ZAxis,
   Cell,
   ReferenceLine,
+  LineChart,
+  Line,
 } from "recharts";
 import "./Evaluation.css";
 
@@ -30,6 +32,7 @@ function Evaluation() {
   const [perClassMetrics, setPerClassMetrics] = useState(null);
   const [clusterMetrics, setClusterMetrics] = useState(null);
   const [pcaData, setPcaData] = useState(null);
+  const [elbowData, setElbowData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -40,13 +43,14 @@ function Evaluation() {
   const fetchAllMetrics = async () => {
     setLoading(true);
     try {
-      const [yieldRes, yieldPredRes, cropRes, perClassRes, clusterRes, pcaRes] = await Promise.all([
+      const [yieldRes, yieldPredRes, cropRes, perClassRes, clusterRes, pcaRes, elbowRes] = await Promise.all([
         axios.get(`${API_BASE}/evaluation/yield/metrics`),
         axios.get(`${API_BASE}/evaluation/yield/predictions`),
         axios.get(`${API_BASE}/evaluation/croprec/metrics`),
         axios.get(`${API_BASE}/evaluation/croprec/per_class_metrics`),
         axios.get(`${API_BASE}/evaluation/cluster/metrics`),
         axios.get(`${API_BASE}/evaluation/cluster/pca`),
+        axios.get(`${API_BASE}/evaluation/cluster/elbow`).catch(() => ({ data: null })),
       ]);
 
       setYieldMetrics(yieldRes.data);
@@ -55,6 +59,7 @@ function Evaluation() {
       setPerClassMetrics(perClassRes.data);
       setClusterMetrics(clusterRes.data);
       setPcaData(pcaRes.data);
+      setElbowData(elbowRes.data);
     } catch (err) {
       setError("Failed to load evaluation metrics: " + err.message);
     } finally {
@@ -96,13 +101,13 @@ function Evaluation() {
   return (
     <div className="evaluation-page">
       <div className="page-header">
-        <h1>📈 Model Evaluation Dashboard</h1>
+        <h1>Model Evaluation Dashboard</h1>
         <p>Key visualizations and metrics for all custom algorithms</p>
       </div>
 
       {/* ============== YIELD PREDICTION MODEL ============== */}
       <div className="card">
-        <h2>🌾 Yield Prediction - Custom Gradient Boosting</h2>
+        <h2>Yield Prediction - Custom Gradient Boosting</h2>
         <p className="algo-desc">{yieldMetrics?.metrics?.algorithm}</p>
 
         <div className="metrics-grid">
@@ -238,7 +243,7 @@ function Evaluation() {
 
       {/* ============== CROP RECOMMENDATION MODEL ============== */}
       <div className="card">
-        <h2>🌱 Crop Recommendation - Custom k-NN Classifier</h2>
+        <h2>Crop Recommendation - Custom k-NN Classifier</h2>
         <p className="algo-desc">{cropMetrics?.metrics?.algorithm}</p>
 
         <div className="metrics-grid">
@@ -337,7 +342,7 @@ function Evaluation() {
 
       {/* ============== CLUSTERING MODEL ============== */}
       <div className="card">
-        <h2>🎯 Cluster Assignment - Custom K-Means</h2>
+        <h2>Cluster Assignment - Custom K-Means</h2>
         <p className="algo-desc">{clusterMetrics?.metrics?.algorithm}</p>
 
         <div className="metrics-grid">
@@ -428,6 +433,120 @@ function Evaluation() {
           </div>
         )}
 
+        {/* Elbow Method Analysis */}
+        {elbowData && (
+          <>
+            <div className="section-header">
+              <h3>Elbow Method Analysis</h3>
+              <p>Determining optimal number of clusters (k) using inertia and silhouette scores</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
+              {/* Inertia (WCSS) Chart */}
+              <div>
+                <h4 style={{ fontSize: "0.95rem", marginBottom: "0.75rem", color: "#333" }}>
+                  Inertia (Within-Cluster Sum of Squares)
+                </h4>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={elbowData.elbow_data}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis
+                      dataKey="k"
+                      label={{ value: "Number of Clusters (k)", position: "insideBottom", offset: -5 }}
+                    />
+                    <YAxis
+                      label={{ value: "Inertia", angle: -90, position: "insideLeft" }}
+                      tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}
+                    />
+                    <Tooltip
+                      formatter={(value) => [value.toLocaleString(), "Inertia"]}
+                      labelFormatter={(label) => `k = ${label}`}
+                    />
+                    <ReferenceLine
+                      x={elbowData.selected_k}
+                      stroke="#e63946"
+                      strokeDasharray="5 5"
+                      strokeWidth={2}
+                      label={{ value: `k=${elbowData.selected_k}`, position: "top", fill: "#e63946", fontSize: 12 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="inertia"
+                      stroke="#4f46e5"
+                      strokeWidth={3}
+                      dot={{ fill: "#4f46e5", r: 5, strokeWidth: 2, stroke: "#fff" }}
+                      activeDot={{ r: 8, fill: "#3730a3" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Silhouette Score Chart */}
+              <div>
+                <h4 style={{ fontSize: "0.95rem", marginBottom: "0.75rem", color: "#333" }}>
+                  Silhouette Score (Higher = Better Separation)
+                </h4>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={elbowData.elbow_data.filter((d) => d.k > 2)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                    <XAxis
+                      dataKey="k"
+                      label={{ value: "Number of Clusters (k)", position: "insideBottom", offset: -5 }}
+                    />
+                    <YAxis
+                      domain={[0, "auto"]}
+                      label={{ value: "Silhouette", angle: -90, position: "insideLeft" }}
+                      tickFormatter={(v) => v.toFixed(2)}
+                    />
+                    <Tooltip
+                      formatter={(value) => [value.toFixed(4), "Silhouette"]}
+                      labelFormatter={(label) => `k = ${label}`}
+                    />
+                    <ReferenceLine
+                      x={elbowData.selected_k}
+                      stroke="#e63946"
+                      strokeDasharray="5 5"
+                      strokeWidth={2}
+                      label={{ value: `k=${elbowData.selected_k}`, position: "top", fill: "#e63946", fontSize: 12 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="silhouette"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ fill: "#10b981", r: 5, strokeWidth: 2, stroke: "#fff" }}
+                      activeDot={{ r: 8, fill: "#059669" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Summary Stats */}
+            <div className="metrics-grid" style={{ marginBottom: "2rem" }}>
+              <div className="metric-box">
+                <div className="metric-label">Selected k</div>
+                <div className="metric-value" style={{ color: "#e63946" }}>{elbowData.selected_k}</div>
+                <div className="metric-subtitle">Optimal clusters</div>
+              </div>
+              <div className="metric-box">
+                <div className="metric-label">Inertia at k={elbowData.selected_k}</div>
+                <div className="metric-value" style={{ color: "#4f46e5" }}>
+                  {elbowData.elbow_data.find((d) => d.k === elbowData.selected_k)?.inertia.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
+                <div className="metric-subtitle">Within-cluster variance</div>
+              </div>
+              <div className="metric-box">
+                <div className="metric-label">Silhouette at k={elbowData.selected_k}</div>
+                <div className="metric-value" style={{ color: "#10b981" }}>
+                  {elbowData.elbow_data.find((d) => d.k === elbowData.selected_k)?.silhouette.toFixed(4)}
+                </div>
+                <div className="metric-subtitle">Cluster separation quality</div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Cluster Sizes Bar Chart */}
         <div className="section-header">
           <h3>Cluster Size Distribution</h3>
@@ -460,7 +579,7 @@ function Evaluation() {
 
         {/* Quality Info */}
         <div className="quality-info">
-          <h4>📊 Clustering Quality Interpretation</h4>
+          <h4>Clustering Quality Interpretation</h4>
           <p>
             <strong>Silhouette Score ({clusterMetrics?.metrics?.silhouette_score?.toFixed(3)}):</strong> Values range from -1 to 1. 
             Score &gt; 0.5 indicates strong structure, 0.25-0.5 indicates reasonable structure. 
