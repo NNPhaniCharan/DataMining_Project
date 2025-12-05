@@ -153,41 +153,6 @@ def get_cluster_metrics():
     except Exception as e:
         raise HTTPException(500, f"Error loading cluster metrics: {str(e)}")
 
-@router.get("/summary")
-def get_evaluation_summary():
-    """Get summary of all models."""
-    try:
-        yield_meta = json.loads((MODELS_DIR / "meta_GradientBoosting_yield.json").read_text()) if (MODELS_DIR / "meta_GradientBoosting_yield.json").exists() else {}
-        crop_meta = json.loads((MODELS_DIR / "meta_croprec.json").read_text()) if (MODELS_DIR / "meta_croprec.json").exists() else {}
-        cluster_meta = json.loads((MODELS_DIR / "meta_cluster.json").read_text()) if (MODELS_DIR / "meta_cluster.json").exists() else {}
-        
-        return {
-            "yield_prediction": {
-                "algorithm": yield_meta.get("algorithm", "Custom Gradient Boosting"),
-                "r2": yield_meta.get("r2"),
-                "rmse": yield_meta.get("rmse"),
-                "mae": yield_meta.get("mae"),
-                "best_n_estimators": yield_meta.get("best_n_estimators")
-            },
-            "crop_recommendation": {
-                "algorithm": crop_meta.get("algorithm", "Custom k-NN Classifier"),
-                "top1_accuracy": crop_meta.get("top1_accuracy"),
-                "top3_accuracy": crop_meta.get("top3_accuracy"),
-                "f1_macro": crop_meta.get("f1_macro"),
-                "n_train": crop_meta.get("n_train")
-            },
-            "clustering": {
-                "algorithm": cluster_meta.get("algorithm", "Custom K-Means"),
-                "n_clusters": cluster_meta.get("n_clusters"),
-                "silhouette_score": cluster_meta.get("silhouette_score"),
-                "calinski_harabasz_score": cluster_meta.get("calinski_harabasz_score"),
-                "counts": cluster_meta.get("counts", [])
-            }
-        }
-    except Exception as e:
-        raise HTTPException(500, f"Error loading evaluation summary: {str(e)}")
-
-
 @router.get("/cluster/pca")
 def get_cluster_pca_data():
     """Get PCA scatter plot data for clustering visualization (sampled for performance)."""
